@@ -5,18 +5,32 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"slices"
+	"strconv"
 )
 
 func main() {
-	if os.Args[1] == "add" {
-		add(os.Args[2], "lista.json")
-	}
-
 	switch os.Args[1] {
 	case "add":
 		add(os.Args[2], "lista.json")
 	case "list":
 		list("lista.json")
+	case "concluir":
+		index, err := strconv.Atoi(os.Args[2])
+		if err != nil {
+			fmt.Println("Erro ao converter parametro")
+			return
+		}
+		finished(index, "lista.json")
+	case "finalizadas":
+		listFin("listaFinalizada.json")
+	case "remover":
+		index, err := strconv.Atoi(os.Args[2])
+		if err != nil {
+			fmt.Println("Erro ao converter parametro")
+			return
+		}
+		cancel(index, "lista.json")
 	}
 }
 
@@ -43,8 +57,6 @@ func add(tarefa string, arquivo string) error {
 
 	// Adicionar novo item
 	lista = append(lista, tarefa)
-
-	fmt.Println(lista)
 
 	//Codificar a slice atualizada
 	novoConteudo, err := json.MarshalIndent(lista, "", " ")
@@ -77,4 +89,87 @@ func list(arquivo string) {
 	for i := 0; i < len(lista); i++ {
 		fmt.Printf("%d - %s\n", i+1, lista[i])
 	}
+}
+
+func finished(index int, arquivo string) {
+	var lista, listaFin []string
+	if _, err := os.Stat(arquivo); err == nil {
+		conteudo, err := os.ReadFile(arquivo)
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		if err := json.Unmarshal(conteudo, &lista); err != nil {
+			log.Fatal(err)
+		} else if os.IsNotExist(err) {
+			fmt.Println("Nenhum item adicionado na lista!")
+			log.Fatal(err)
+		}
+	}
+
+	listaFin = append(listaFin, lista[index-1])
+	novaLista, err := json.MarshalIndent(listaFin, "", " ")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	os.WriteFile("listaFinalizada.json", novaLista, 0644)
+
+	lista = slices.Delete(lista, index-1, index)
+	novoConteudo, err := json.MarshalIndent(lista, "", " ")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	os.WriteFile(arquivo, novoConteudo, 0644)
+}
+
+func listFin(arquivo string) {
+	var lista []string
+	if _, err := os.Stat(arquivo); err == nil {
+		conteudo, err := os.ReadFile(arquivo)
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		if err := json.Unmarshal(conteudo, &lista); err != nil {
+			log.Fatal(err)
+		} else if os.IsNotExist(err) {
+			fmt.Printf("Nenhum item adicionado na lista!")
+			log.Fatal(err)
+		}
+	}
+
+	fmt.Println("------ FINALIZADAS ------")
+	for i := 0; i < len(lista); i++ {
+		fmt.Printf("%d - %s\n", i+1, lista[i])
+	}
+}
+
+func cancel(index int, arquivo string) {
+	var lista []string
+	if _, err := os.Stat(arquivo); err == nil {
+		conteudo, err := os.ReadFile(arquivo)
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		if err := json.Unmarshal(conteudo, &lista); err != nil {
+			log.Fatal(err)
+		} else if os.IsNotExist(err) {
+			fmt.Println("Nenhum item adicionado na lista!")
+			log.Fatal(err)
+		}
+	}
+
+	lista = slices.Delete(lista, index-1, index)
+	novoConteudo, err := json.MarshalIndent(lista, "", " ")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	os.WriteFile(arquivo, novoConteudo, 0644)
 }
