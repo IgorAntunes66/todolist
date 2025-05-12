@@ -12,25 +12,50 @@ import (
 func main() {
 	switch os.Args[1] {
 	case "add":
-		add(os.Args[2], "lista.json")
+		if len(os.Args) == 3 {
+			add(os.Args[2], "lista.json")
+		} else {
+			fmt.Println("Para utilizar a função \"add\" deve ser passado apenas uma tarefa para ser adicionada e sem espaços! Ex: ./todolist.go add \"tarefa\"")
+			os.Exit(1)
+		}
 	case "list":
-		list("lista.json")
+		if len(os.Args) == 2 {
+			list("lista.json")
+		} else {
+			fmt.Println("Para utilizar a função \"list\" não deve ser passado nada antes e nem apos do comando! Ex: ./todolist.go list")
+			os.Exit(1)
+		}
 	case "concluir":
-		index, err := strconv.Atoi(os.Args[2])
-		if err != nil {
-			fmt.Println("Erro ao converter parametro")
-			return
+		if len(os.Args) == 3 {
+			index, err := strconv.Atoi(os.Args[2])
+			if err != nil {
+				fmt.Println("Erro ao converter parametro")
+				os.Exit(1)
+			}
+			finished(index, "lista.json", "listaFinalizadas.json")
+		} else {
+			fmt.Println("Para utilizar a função \"concluir\" deve ser passado apenas um index da tarefa a ser concluida e sem espaços! Ex: ./todolist.go concluir \"index\"")
+			os.Exit(1)
 		}
-		finished(index, "lista.json")
 	case "finalizadas":
-		listFin("listaFinalizada.json")
-	case "remover":
-		index, err := strconv.Atoi(os.Args[2])
-		if err != nil {
-			fmt.Println("Erro ao converter parametro")
-			return
+		if len(os.Args) == 2 {
+			listFin("listaFinalizadas.json")
+		} else {
+			fmt.Println("Para utilizar a função \"finalizadas\" não deve ser passado nada antes e nem apos do comando! Ex: ./todolist.go list")
+			os.Exit(1)
 		}
-		cancel(index, "lista.json")
+	case "remover":
+		if len(os.Args) == 3 {
+			index, err := strconv.Atoi(os.Args[2])
+			if err != nil {
+				fmt.Println("Erro ao converter parametro")
+				return
+			}
+			cancel(index, "lista.json")
+		} else {
+			fmt.Println("Para utilizar a função \"remover\" deve ser passado apenas um index da tarefa a ser concluida e sem espaços! Ex: ./todolist.go remover \"index\"")
+			os.Exit(1)
+		}
 	}
 }
 
@@ -91,10 +116,10 @@ func list(arquivo string) {
 	}
 }
 
-func finished(index int, arquivo string) {
+func finished(index int, arquivoLista, arquivoListaFinalizada string) {
 	var lista, listaFin []string
-	if _, err := os.Stat(arquivo); err == nil {
-		conteudo, err := os.ReadFile(arquivo)
+	if _, err := os.Stat(arquivoLista); err == nil {
+		conteudo, err := os.ReadFile(arquivoLista)
 
 		if err != nil {
 			log.Fatal(err)
@@ -103,7 +128,28 @@ func finished(index int, arquivo string) {
 		if err := json.Unmarshal(conteudo, &lista); err != nil {
 			log.Fatal(err)
 		} else if os.IsNotExist(err) {
-			fmt.Println("Nenhum item adicionado na lista!")
+			fmt.Println("Lista de tarefas não existe!")
+			log.Fatal(err)
+		}
+	}
+	fmt.Println(lista)
+
+	if len(lista) < 1 {
+		log.Fatal("Nenhum item na lista de tarefa.")
+	}
+
+	if index < 1 || index > len(lista) {
+		log.Fatal("Passe um index valido!")
+	}
+
+	if _, err := os.Stat(arquivoListaFinalizada); err == nil {
+		conteudoFin, err := os.ReadFile(arquivoListaFinalizada)
+
+		if err != nil {
+			log.Fatal("Erro ao ler arquivo da lista finalizada.")
+		}
+
+		if err := json.Unmarshal(conteudoFin, &listaFin); err != nil {
 			log.Fatal(err)
 		}
 	}
@@ -114,7 +160,7 @@ func finished(index int, arquivo string) {
 		log.Fatal(err)
 	}
 
-	os.WriteFile("listaFinalizada.json", novaLista, 0644)
+	os.WriteFile(arquivoListaFinalizada, novaLista, 0644)
 
 	lista = slices.Delete(lista, index-1, index)
 	novoConteudo, err := json.MarshalIndent(lista, "", " ")
@@ -122,7 +168,7 @@ func finished(index int, arquivo string) {
 		log.Fatal(err)
 	}
 
-	os.WriteFile(arquivo, novoConteudo, 0644)
+	os.WriteFile(arquivoLista, novoConteudo, 0644)
 }
 
 func listFin(arquivo string) {
@@ -137,7 +183,7 @@ func listFin(arquivo string) {
 		if err := json.Unmarshal(conteudo, &lista); err != nil {
 			log.Fatal(err)
 		} else if os.IsNotExist(err) {
-			fmt.Printf("Nenhum item adicionado na lista!")
+			fmt.Printf("Lista ainda não existe!")
 			log.Fatal(err)
 		}
 	}
@@ -163,6 +209,10 @@ func cancel(index int, arquivo string) {
 			fmt.Println("Nenhum item adicionado na lista!")
 			log.Fatal(err)
 		}
+	}
+
+	if len(lista) < 1 {
+		log.Fatal("Nenhum item na lista de tarefa.")
 	}
 
 	lista = slices.Delete(lista, index-1, index)
