@@ -9,18 +9,25 @@ import (
 	"strconv"
 )
 
+const LISTA = "lista.json"
+const FINALIZADAS = "listaFinalizadas.json"
+
 func main() {
 	switch os.Args[1] {
 	case "add":
 		if len(os.Args) == 3 {
-			add(os.Args[2], "lista.json")
+			if !isLetter(os.Args[2]) {
+				fmt.Println("A tarefa precisa ser apenas letras.")
+				os.Exit(1)
+			}
+			add(os.Args[2], LISTA)
 		} else {
 			fmt.Println("Para utilizar a função \"add\" deve ser passado apenas uma tarefa para ser adicionada e sem espaços! Ex: ./todolist.go add \"tarefa\"")
 			os.Exit(1)
 		}
 	case "list":
 		if len(os.Args) == 2 {
-			list("lista.json")
+			list(LISTA)
 		} else {
 			fmt.Println("Para utilizar a função \"list\" não deve ser passado nada antes e nem apos do comando! Ex: ./todolist.go list")
 			os.Exit(1)
@@ -39,7 +46,7 @@ func main() {
 		}
 	case "finalizadas":
 		if len(os.Args) == 2 {
-			listFin("listaFinalizadas.json")
+			listFin(FINALIZADAS)
 		} else {
 			fmt.Println("Para utilizar a função \"finalizadas\" não deve ser passado nada antes e nem apos do comando! Ex: ./todolist.go list")
 			os.Exit(1)
@@ -51,7 +58,7 @@ func main() {
 				fmt.Println("Erro ao converter parametro")
 				return
 			}
-			cancel(index, "lista.json")
+			cancel(index, LISTA)
 		} else {
 			fmt.Println("Para utilizar a função \"remover\" deve ser passado apenas um index da tarefa a ser concluida e sem espaços! Ex: ./todolist.go remover \"index\"")
 			os.Exit(1)
@@ -60,23 +67,8 @@ func main() {
 }
 
 func add(tarefa string, arquivo string) error {
-	var lista []string
-
-	if _, err := os.Stat(arquivo); err == nil {
-		//Arquivo existe: Lê o conteudo
-		conteudo, err := os.ReadFile(arquivo)
-		if err != nil {
-			return err
-		}
-		// Decodificar o json para a slice
-		if err := json.Unmarshal(conteudo, &lista); err != nil {
-			return err
-		}
-	} else if os.IsNotExist(err) {
-		// Arquivo não existe: cria uma slice vazia
-		lista = []string{}
-	} else {
-		// Outro erro (ex: permissão)
+	lista, err := jsonToSlice(arquivo)
+	if err != nil {
 		return err
 	}
 
@@ -84,30 +76,14 @@ func add(tarefa string, arquivo string) error {
 	lista = append(lista, tarefa)
 
 	//Codificar a slice atualizada
-	novoConteudo, err := json.MarshalIndent(lista, "", " ")
-	if err != nil {
-		return err
-	}
-
-	//Escrever no arquivo
-	return os.WriteFile(arquivo, novoConteudo, 0644)
+	return sliceToJson(lista, arquivo)
 }
 
 func list(arquivo string) {
 	var lista []string
-	if _, err := os.Stat(arquivo); err == nil {
-		conteudo, err := os.ReadFile(arquivo)
-
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		if err := json.Unmarshal(conteudo, &lista); err != nil {
-			log.Fatal(err)
-		} else if os.IsNotExist(err) {
-			fmt.Printf("Nenhum item adicionado na lista!")
-			log.Fatal(err)
-		}
+	var err error
+	if lista, err = jsonToSlice(arquivo); err != nil {
+		log.Fatal(err)
 	}
 
 	fmt.Println("------ TO-DO ------")
@@ -117,22 +93,10 @@ func list(arquivo string) {
 }
 
 func finished(index int, arquivoLista, arquivoListaFinalizada string) {
-	var lista, listaFin []string
-	if _, err := os.Stat(arquivoLista); err == nil {
-		conteudo, err := os.ReadFile(arquivoLista)
-
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		if err := json.Unmarshal(conteudo, &lista); err != nil {
-			log.Fatal(err)
-		} else if os.IsNotExist(err) {
-			fmt.Println("Lista de tarefas não existe!")
-			log.Fatal(err)
-		}
+	lista, err := jsonToSlice(arquivoLista)
+	if err != nil {
+		log.Fatal(err)
 	}
-	fmt.Println(lista)
 
 	if len(lista) < 1 {
 		log.Fatal("Nenhum item na lista de tarefa.")
@@ -142,19 +106,14 @@ func finished(index int, arquivoLista, arquivoListaFinalizada string) {
 		log.Fatal("Passe um index valido!")
 	}
 
-	if _, err := os.Stat(arquivoListaFinalizada); err == nil {
-		conteudoFin, err := os.ReadFile(arquivoListaFinalizada)
-
-		if err != nil {
-			log.Fatal("Erro ao ler arquivo da lista finalizada.")
-		}
-
-		if err := json.Unmarshal(conteudoFin, &listaFin); err != nil {
-			log.Fatal(err)
-		}
+	listaFin, err := jsonToSlice(arquivoListaFinalizada)
+	if err != nil {
+		log.Fatal(err)
 	}
 
+	// 14/05/25 parei aqui
 	listaFin = append(listaFin, lista[index-1])
+
 	novaLista, err := json.MarshalIndent(listaFin, "", " ")
 	if err != nil {
 		log.Fatal(err)
@@ -173,19 +132,9 @@ func finished(index int, arquivoLista, arquivoListaFinalizada string) {
 
 func listFin(arquivo string) {
 	var lista []string
-	if _, err := os.Stat(arquivo); err == nil {
-		conteudo, err := os.ReadFile(arquivo)
-
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		if err := json.Unmarshal(conteudo, &lista); err != nil {
-			log.Fatal(err)
-		} else if os.IsNotExist(err) {
-			fmt.Printf("Lista ainda não existe!")
-			log.Fatal(err)
-		}
+	var err error
+	if lista, err = jsonToSlice(arquivo); err != nil {
+		log.Fatal(err)
 	}
 
 	fmt.Println("------ FINALIZADAS ------")
@@ -196,19 +145,10 @@ func listFin(arquivo string) {
 
 func cancel(index int, arquivo string) {
 	var lista []string
-	if _, err := os.Stat(arquivo); err == nil {
-		conteudo, err := os.ReadFile(arquivo)
-
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		if err := json.Unmarshal(conteudo, &lista); err != nil {
-			log.Fatal(err)
-		} else if os.IsNotExist(err) {
-			fmt.Println("Nenhum item adicionado na lista!")
-			log.Fatal(err)
-		}
+	var err error
+	lista, err = jsonToSlice(arquivo)
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	if len(lista) < 1 {
@@ -222,4 +162,47 @@ func cancel(index int, arquivo string) {
 	}
 
 	os.WriteFile(arquivo, novoConteudo, 0644)
+}
+
+func isLetter(texto string) bool {
+	for i := range len(texto) {
+		if int(texto[i]) >= 65 && int(texto[i]) <= 90 || int(texto[i]) >= 97 && int(texto[i]) <= 122 {
+			continue
+		} else {
+			return false
+		}
+	}
+	return true
+}
+
+func jsonToSlice(arquivo string) ([]string, error) {
+	var lista []string
+	if _, err := os.Stat(arquivo); err == nil {
+		//Arquivo existe: Lê o conteudo
+		conteudo, err := os.ReadFile(arquivo)
+		if err != nil {
+			return nil, err
+		}
+
+		//Decodificar o json para a slice
+		if err := json.Unmarshal(conteudo, &lista); err != nil {
+			return nil, err
+		}
+	} else if os.IsNotExist(err) {
+		lista = []string{}
+	} else {
+		return nil, err
+	}
+
+	return lista, nil
+}
+
+func sliceToJson(slice []string, arquivo string) error {
+	// Codificar a slice atualizada
+	novoConteudo, err := json.MarshalIndent(slice, "", " ")
+	if err != nil {
+		return err
+	}
+
+	return os.WriteFile(arquivo, novoConteudo, 0644)
 }
