@@ -2,6 +2,6 @@ package todo
 
 type Task struct {
 	ID        int    `json:"id"`
-	Title     string `json:"title"`
+	Tarefa    string `json:"title"`
 	Completed bool   `json:"completed"`
 }

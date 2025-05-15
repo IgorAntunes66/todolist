@@ -13,9 +13,9 @@ func IsLetter(texto string) bool {
 	return true
 }
 
-func PrintList(texto string, lista []string) {
+func PrintList(texto string, lista []Task) {
 	fmt.Printf("------ %s ------\n", texto)
 	for i := 0; i < len(lista); i++ {
-		fmt.Printf("%d - %s\n", i+1, lista[i])
+		fmt.Printf("%d - %s\n", lista[i].ID, lista[i].Tarefa)
 	}
 }

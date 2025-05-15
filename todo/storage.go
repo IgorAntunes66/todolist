@@ -5,8 +5,8 @@ import (
 	"os"
 )
 
-func JsonToSlice(arquivo string) ([]string, error) {
-	var lista []string
+func JsonToSlice(arquivo string) ([]Task, error) {
+	var lista []Task
 	if _, err := os.Stat(arquivo); err == nil {
 		//Arquivo existe: Lê o conteudo
 		conteudo, err := os.ReadFile(arquivo)
@@ -19,7 +19,7 @@ func JsonToSlice(arquivo string) ([]string, error) {
 			return nil, err
 		}
 	} else if os.IsNotExist(err) {
-		lista = []string{}
+		lista = []Task{}
 	} else {
 		return nil, err
 	}
@@ -27,7 +27,7 @@ func JsonToSlice(arquivo string) ([]string, error) {
 	return lista, nil
 }
 
-func SliceToJson(slice []string, arquivo string) error {
+func SliceToJson(slice []Task, arquivo string) error {
 	// Codificar a slice atualizada
 	novoConteudo, err := json.MarshalIndent(slice, "", " ")
 	if err != nil {
