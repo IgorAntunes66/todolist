@@ -5,7 +5,7 @@ import (
 	"os"
 )
 
-func jsonToSlice(arquivo string) ([]string, error) {
+func JsonToSlice(arquivo string) ([]string, error) {
 	var lista []string
 	if _, err := os.Stat(arquivo); err == nil {
 		//Arquivo existe: Lê o conteudo
@@ -27,7 +27,7 @@ func jsonToSlice(arquivo string) ([]string, error) {
 	return lista, nil
 }
 
-func sliceToJson(slice []string, arquivo string) error {
+func SliceToJson(slice []string, arquivo string) error {
 	// Codificar a slice atualizada
 	novoConteudo, err := json.MarshalIndent(slice, "", " ")
 	if err != nil {
